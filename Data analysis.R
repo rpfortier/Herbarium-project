@@ -1,6 +1,6 @@
-# Data analysis for Gentry tree project
+### Data analysis for individual tree trait changes through time ###
 
-setwd("C:/Users/rxf568/Dropbox/Peru - Individual Tree Project/Data analysis")
+#set working directory
 
 # Load libraries
 library(dplyr)
@@ -49,13 +49,13 @@ rm(x)
 
 #summarize stomatal traits
 #start with size
-stomata_dry <- read_excel("C:/Users/rxf568/Dropbox/Peru - Individual Tree Project/Stomatal peels/Stomatal analysis.xlsx")
+stomata_dry <- read_excel("C:/Users/rfortier/Dropbox/Peru - Individual Tree Project/Stomatal peels/Stomatal analysis.xlsx")
 stomata_dry <- stomata_dry %>%
   group_by(Image_name) %>%
   summarise("Pore_length" = mean(Pore_length),
             "Guard_cell_width" = mean(Guard_cell_width))
 
-stomata_fresh <- read_excel("C:/Users/rxf568/Dropbox/Peru - Individual Tree Project/Stomatal peels/Stomatal analysis.xlsx", 
+stomata_fresh <- read_excel("C:/Users/rfortier/Dropbox/Peru - Individual Tree Project/Stomatal peels/Stomatal analysis.xlsx", 
                                 sheet = "FRESH")
 stomata_fresh$Species <- NULL
 stomata_fresh$Image_name <- sub(".tif", ".jpg", stomata_fresh$Image_name)
@@ -81,9 +81,9 @@ stomata_size$Plot <- ifelse(stomata_size$Plot == "SEN", "Sendero", stomata_size$
 stomata_size$Image_name <- NULL
 
 #now do density
-stomata_dry_dens <- read_excel("C:/Users/rxf568/Dropbox/Peru - Individual Tree Project/Stomatal peels/Stomatal analysis.xlsx", 
+stomata_dry_dens <- read_excel("C:/Users/rfortier/Dropbox/Peru - Individual Tree Project/Stomatal peels/Stomatal analysis.xlsx", 
                                sheet = "DRY_Density")
-stomata_fresh_dens <- read_excel("C:/Users/rxf568/Dropbox/Peru - Individual Tree Project/Stomatal peels/Stomatal analysis.xlsx", 
+stomata_fresh_dens <- read_excel("C:/Users/rfortier/Dropbox/Peru - Individual Tree Project/Stomatal peels/Stomatal analysis.xlsx", 
                                sheet = "FRESH_Density")
 stomata_fresh_dens$Image_name <- sub(".tif", ".jpg", stomata_fresh_dens$Image_name)
 stomata_dens <- left_join(stomata_dry_dens, stomata_fresh_dens, by = "Image_name")
@@ -109,7 +109,6 @@ stomata <- left_join(stomata_size, stomata_dens, by = c("Plot", "Tag", "Stratum"
 
 #combine with leaves_modern data
 leaves_modern <- left_join(leaves_modern, stomata, by = c("Plot", "Tag", "Stratum", "leaf"))
-#leaves_modern$stomatal_size <- 
   
 #make function to calculate gmax
 calculate_gmax <- function(pore_length, guard_cell_width, stomatal_density){
@@ -148,6 +147,9 @@ leaves_modern$gmax <- calculate_gmax(leaves_modern$Pore_length, leaves_modern$Gu
 leaves_modern$gmax_fresh <- calculate_gmax(leaves_modern$Pore_length_fresh, leaves_modern$Guard_cell_width_fresh, leaves_modern$Density_fresh)
 
 ###analysis of dry and fresh modern leaf measurements
+#add tree identifier to include as random effect
+leaves_modern$treeID <- paste0(leaves_modern$Plot, leaves_modern$Tag)
+
 #thickness
 sf1 <- ggplot(data = leaves_modern, aes(x = thickness, y = thickness_fresh)) +
   geom_point(size = 0.7) +
@@ -159,7 +161,7 @@ sf1 <- ggplot(data = leaves_modern, aes(x = thickness, y = thickness_fresh)) +
   theme_bw()
 sf1
 
-m <- lmer(thickness_fresh ~ thickness + (1|species), data=leaves_modern)
+m <- lmer(thickness_fresh ~ thickness + (1|species/treeID), data=leaves_modern)
 summary(m)
 r.squaredGLMM(m)
 
@@ -174,7 +176,7 @@ sf2 <- ggplot(data = leaves_modern, aes(x = lma, y = lma_fresh)) +
   theme_bw() 
 sf2
 
-m <- lmer(lma_fresh ~ lma + (1|species), data=leaves_modern) 
+m <- lmer(lma_fresh ~ lma + (1|species/treeID), data=leaves_modern) 
 summary(m)
 r.squaredGLMM(m)
 
@@ -189,7 +191,7 @@ sf3 <- ggplot(data = leaves_modern, aes(x = elw, y = elw_fresh)) +
   ggtitle("ELW") +
   theme_bw()
 sf3
-m <- lmer(elw_fresh ~ elw + (1|species), data=leaves_modern) 
+m <- lmer(elw_fresh ~ elw + (1|species/treeID), data=leaves_modern) 
 summary(m)
 r.squaredGLMM(m)
 m <- summary(m)
@@ -208,7 +210,7 @@ sf4 <- ggplot(data = leaves_modern, aes(x = Pore_length, y = Pore_length_fresh))
   ggtitle("Pore length") +
   theme_bw()
 sf4
-m <- lmer(Pore_length_fresh ~ Pore_length + (1|species), data=leaves_modern)
+m <- lmer(Pore_length_fresh ~ Pore_length + (1|species/treeID), data=leaves_modern)
 summary(m)
 r.squaredGLMM(m)
 
@@ -224,7 +226,7 @@ sf5 <- ggplot(data = leaves_modern, aes(x = Guard_cell_width, y = Guard_cell_wid
   ggtitle("Guard cell width") +
   theme_bw()
 sf5
-m <- lmer(Guard_cell_width_fresh ~ Guard_cell_width + (1|species), data=leaves_modern)
+m <- lmer(Guard_cell_width_fresh ~ Guard_cell_width + (1|species/treeID), data=leaves_modern)
 summary(m)
 r.squaredGLMM(m)
 
@@ -234,28 +236,28 @@ leaves_modern$stomatal_size_fresh <- (pi * (leaves_modern$Pore_length_fresh/2) *
 
 sf6 <- ggplot(data = filter(leaves_modern, !is.na(stomatal_size_fresh)), aes(x = stomatal_size, y = stomatal_size_fresh)) +
   geom_point(size = 0.7, na.rm = TRUE) +
-  geom_smooth(method = "lm", se = FALSE, na.rm = TRUE) +
+  geom_smooth(method = "lm", se = TRUE, na.rm = TRUE) +
   xlab(bquote(""~um^2)) +
   ylab(bquote(""~um^2)) +
   #add title
   ggtitle("Stomatal size") +
   theme_bw()
 sf6
-m <- lmer(stomatal_size_fresh ~ stomatal_size + (1|species), data=leaves_modern)
+m <- lmer(stomatal_size_fresh ~ stomatal_size + (1|species/treeID), data=leaves_modern)
 summary(m)
 r.squaredGLMM(m)
 
 #density
 sf7 <- ggplot(data = filter(leaves_modern, !is.na(Density_fresh)), aes(x = Density, y = Density_fresh)) +
   geom_point(size = 0.7) +
-  geom_smooth(method = "lm", se = FALSE) +
+  geom_smooth(method = "lm", se = TRUE) +
   xlab(bquote(""~mm^-2)) +
   ylab(bquote(""~mm^-2)) +
   #add title
   ggtitle("Stomatal density") +
   theme_bw()
 sf7
-m <- lmer(Density_fresh ~ Density + (1|species), data=leaves_modern)
+m <- lmer(Density_fresh ~ Density + (1|species/treeID), data=leaves_modern)
 summary(m)
 r.squaredGLMM(m)
 
@@ -269,7 +271,7 @@ sf8 <- ggplot(data = filter(leaves_modern, !is.na(gmax_fresh)), aes(x = gmax, y 
   ggtitle("gsmax") +
   theme_bw()
 sf8
-m <- lmer(gmax_fresh ~ gmax + (1|species), data=leaves_modern)
+m <- lmer(gmax_fresh ~ gmax + (1|species/treeID), data=leaves_modern)
 summary(m)
 r.squaredGLMM(m)
 m <- summary(m)
@@ -522,6 +524,9 @@ f
 
 grid.arrange(a, b, c, d, e, f, ncol = 3, bottom = "DBH (cm)")
 
+#write leaves_modern for additional spectral analysis
+#write.csv(leaves_modern, "leaves_modern_cleaned.csv", row.names = FALSE)
+
 ########################
 ##### historic leaves data
 #read in historic leaves data and get the Plot and tag 
@@ -555,13 +560,13 @@ leaves_historic$lma <- ifelse(!is.na(leaves_historic$mass),  #if the mass withou
                                   (leaves_historic$mass_w_glue)/leaves_historic$leaf_area*1000) #divide by 1000 to convert mg to g
 
 #historical stomata data 
-stomata_hist <- read_excel("C:/Users/rxf568/Dropbox/Peru - Individual Tree Project/Stomatal peels/Stomatal analysis.xlsx", 
+stomata_hist <- read_excel("C:/Users/rfortier/Dropbox/Peru - Individual Tree Project/Stomatal peels/Stomatal analysis.xlsx", 
                            sheet = "HISTORIC")
 stomata_hist <- stomata_hist %>%
   group_by(Image_name) %>%
   summarise("Pore_length" = mean(Pore_length),
             "Guard_cell_width" = mean(Guard_cell_width))
-stomata_hist_dens <- read_excel("C:/Users/rxf568/Dropbox/Peru - Individual Tree Project/Stomatal peels/Stomatal analysis.xlsx", 
+stomata_hist_dens <- read_excel("C:/Users/rfortier/Dropbox/Peru - Individual Tree Project/Stomatal peels/Stomatal analysis.xlsx", 
                                 sheet = "HISTORIC_Density")
 stomata_hist_dens$Density <- stomata_hist_dens$Density*10 #convert to mm^2
 stomata_hist <- left_join(stomata_hist, stomata_hist_dens, by = "Image_name")
@@ -579,6 +584,8 @@ stomata_hist$Image_name <- NULL
 #combine with other historical data
 leaves_historic <- left_join(leaves_historic, stomata_hist, by = c("Collector", "CollectionNumber", "leaf"), relationship = "many-to-many")
 
+#write leaves_historic for additional spectral analysis
+#write.csv(leaves_historic, "leaves_historic_cleaned.csv", row.names = FALSE)
 
 #make supp table 1
 supp_table1 <- leaves_historic %>%
@@ -1101,7 +1108,7 @@ ggplot(data = x, aes(x = year, y = T_leaf)) +
   geom_smooth(method = "lm", color = "#2044BD", se = T, linewidth = 1.3) +
   ylab("Leaf Temperature (°C)") +
   #add a second y axis for air temperature
-  #scale_y_continuous(sec.axis = sec_axis(~ . , name = "Air Temperature (°C)")) +
+  scale_y_continuous(sec.axis = sec_axis(~ . -10, name = "Air Temperature (°C)")) +
   xlab("Year") +
   #make axis text larger
   theme(axis.text.x = element_text(size = 12),
@@ -1214,7 +1221,7 @@ for (i in 1:nrow(trees_traits_all)){
   
   #environmental parameters. make a new data frame from climate with just one row with averages for each variable
   clim <- climate %>%
-    summarize(tmax = mean(tmax), 
+    dplyr::summarize(tmax = mean(tmax), 
               RH = mean(RH))
   
   enviro_par$T_air <- clim$tmax + 273.15 #convert max temp from degrees C to K
@@ -1233,7 +1240,7 @@ for (i in 1:nrow(trees_traits_all)){
 }
 trees_traits_all$T_leaf_mean <- T_leaf
 
-#same but using the modern dry season climate data
+#same but using the modern hot season climate data
 for (i in 1:nrow(trees_traits_all)){
   
   #leaf parameters. input leaf trait averages for each tree
@@ -1244,7 +1251,7 @@ for (i in 1:nrow(trees_traits_all)){
   
   #environmental parameters. use hot climate
   clim <- hot_season %>%
-    summarize(tmax = mean(tmax), 
+    dplyr::summarize(tmax = mean(tmax), 
               RH = mean(RH))
   
   enviro_par$T_air <- clim$tmax + 273.15 #convert max temp from degrees C to K
@@ -1274,7 +1281,7 @@ for (i in 1:nrow(trees_traits_all)){
   
   #environmental parameters. use cold climate
   clim <- cold_season %>%
-    summarize(tmax = mean(tmax), 
+    dplyr::summarize(tmax = mean(tmax), 
               RH = mean(RH))
   
   enviro_par$T_air <- clim$tmax + 273.15 #convert max temp from degrees C to K
@@ -1328,9 +1335,9 @@ ind.trees <- ind.trees %>% replace_na(list(guard_cell_width = NA, guard_cell_wid
 #do a t test to see if historical and modern leaves are different
 x <- ind.trees %>% 
   filter(group != "2000s" & group != "2010s" & sum(!is.na(T_leaf)) >1) #Don't change T_leaf here. This removes trees that don't have leaf temps for both collections
-x <- x[, c("treeID", "group", "T_leaf_mean")] %>% #change T_leaf column to test the cool, mean, and hot climates 
+x <- x[, c("treeID", "group", "T_leaf_hot")] %>% #change T_leaf column to test the cool, mean, and hot climates 
   pivot_wider(names_from = group,
-              values_from = T_leaf_mean, #change T_leaf column to test the cool, mean, and hot climates 
+              values_from = T_leaf_hot, #change T_leaf column to test the cool, mean, and hot climates 
               values_fn = mean)
 x <- x %>%
   rename("Historical" = `1980s`,
@@ -1346,8 +1353,8 @@ x <- x %>%
 x$group <- factor(x$group, levels = c("Historical", "Contemporary"))
 
 ggplot(data = x, aes(x = group, y = T_leaf_hot)) + #change T_leaf column to visualize the cool, mean, and hot climates
-  geom_boxplot(aes(group = group), fill = "gray95", outliers = TRUE) +
- # geom_line(aes(group = treeID), color = "gray50", alpha = 0.4) +
+  geom_boxplot(aes(group = group), fill = "gray95", outliers = FALSE) +
+  #geom_line(aes(group = treeID), color = "gray50", alpha = 0.4) +
   geom_jitter(width = 0.05, height = 0, size = 1.5, color = "black", alpha = 0.4) +
   theme_bw() +
   ylab("Leaf Temperature (°C)") +
@@ -1483,75 +1490,5 @@ ggplot(coefficients_df, aes(x = Parameter, y = Estimate, fill = Category)) +
         axis.title.x = element_text(size = 14),
         axis.title.y = element_text(size = 14))
 
-#####
-#Random things
-### make a list of the most common species
-trees_traits_all %>%
-  group_by(Species) %>%
-  summarize("n" = n()) %>%
-  arrange(desc(n)) %>%
-  head(10)
 
-#how many trees in trees_traits_all have stratum == "bottom"?
-trees_traits_hist %>%
-  filter(Stratum == "bottom") %>%
-  summarise("n" = n())
-
-###some analyses for B. lactescens
-bl <- trees_traits_all %>%
-  filter(Species == "Brosimum lactescens")
-
-summary(lm(thickness ~ DBH2023, data = subset(bl, Stratum == "bottom")))
-ggplot(data = bl, aes(x = DBH2023, y = thickness)) +
-  geom_point()
-
-summary(lmer(thickness ~ year + (1|treeID), data = subset(ind.trees, Species == "Brosimum lactescens")))
-ggplot(data = subset(ind.trees, Species == "Brosimum lactescens"), aes(x = year, y = thickness)) +
-  geom_point() +
-  geom_line(data = subset(ind.trees, Species == "Brosimum lactescens"), (aes(group = treeID)), color = "red") 
-
-
-###some analyses for Eschweilera coriacea
-ec <- trees_traits_all %>%
-  filter(Species == "Eschweilera coriacea")
-
-summary(lm(thickness ~ DBH2023, data = subset(ec, Stratum == "bottom")))
-ggplot(data = ec, aes(x = DBH2023, y = thickness)) +
-  geom_point()
-
-summary(lmer(thickness ~ year + (1|treeID), data = subset(ind.trees, Species == "Eschweilera coriacea")))
-ggplot(data = subset(ind.trees, Species == "Eschweilera coriacea"), aes(x = year, y = thickness)) +
-  geom_point() +
-  geom_line(data = subset(ind.trees, Species == "Eschweilera coriacea"), (aes(group = treeID)), color = "red") 
-
-
-###some analyses for Licania heteromorpha
-lh <- trees_traits_all %>%
-  filter(Species == "Licania heteromorpha")
-
-summary(lm(thickness ~ DBH2023, data = subset(lh, Stratum == "bottom")))
-ggplot(data = lh, aes(x = DBH2023, y = thickness)) +
-  geom_point()
-
-summary(lmer(thickness ~ year + (1|treeID), data = subset(ind.trees, Species == "Licania heteromorpha")))
-ggplot(data = subset(ind.trees, Species == "Licania heteromorpha"), aes(x = year, y = thickness)) +
-  geom_point() +
-  geom_line(data = subset(ind.trees, Species == "Licania heteromorpha"), (aes(group = treeID)), color = "red") 
-
-
-###some analyses for Protium stevensonii
-ps <- trees_traits_all %>%
-  filter(Species == "Protium stevensonii")
-
-summary(lm(thickness ~ DBH2023, data = subset(ps, Stratum == "bottom")))
-ggplot(data = subset(ps, Stratum == 1), aes(x = DBH2023, y = thickness)) +
-  geom_point()
-
-summary(lmer(thickness ~ year + (1|treeID), data = subset(ind.trees, Species == "Protium stevensonii")))
-ggplot(data = subset(ind.trees, Species == "Protium stevensonii"), aes(x = year, y = thickness)) +
-  geom_point() +
-  geom_line(data = subset(ind.trees, Species == "Protium stevensonii"), (aes(group = treeID)), color = "red") 
-
-
-
-
+ ####
