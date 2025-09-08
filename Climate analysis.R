@@ -193,11 +193,21 @@ new <- melt(new, id.vars = "Year")
 #interpolate missing values
 new$value <- na.approx(new$value, na.rm = FALSE)
 
-labels <- c("average" = "CO2 mole fraction (ppm)", "mcwd" = "MCWD (mm)")
-cols <- c("#4E84C4", "#D16103")
+labels <- c("average" = "CO2 mole fraction (ppm)", "mcwd" = "MCWD (mm)", "mat" = "Mean annual temperature (C)")
+cols <- c("#4E84C4", "#D16103", "darkred")
 
 #make vector of year and month 
+supp_table1 <- read.csv("supp_table1.csv")
 dates <- as.Date(paste0(supp_table1$year, "-", supp_table1$Month, "-01"))
+
+#make new dataframe for mean temperature from 1983 to 2023, with temp starting at 26.7 and increasing by 0.036 per year
+#mat <- data.frame(Year = seq(as.Date("1983-01-01"), as.Date("2024-07-01"), by = "month"))
+#mat$variable <- "mat"
+#mat$value <- seq(from = 26.7, by = 0.003, length.out = nrow(mat))
+
+#add mat rows to new as a new variable
+#new <- rbind(new, mat)
+
 
 #plot
 ggplot(new, aes(x = Year, y = value, color = variable)) +
@@ -221,86 +231,4 @@ ggplot(new, aes(x = Year, y = value, color = variable)) +
         strip.placement = "outside",
         strip.background = element_blank(),
         legend.position = "none") 
-
-#make graph of evapotranspiration, precip, and wd for 2023
-ggplot(subset(climate, Year ==2021), aes(x = month)) +
-  geom_line(aes(y = cumsum(wd)), color = "red", linewidth = 1.2) +
-  geom_line(aes(y = evap), color = "darkgreen", linewidth = 1.2) +
-  geom_line(aes(y = precip), color = "lightblue", linewidth = 1.2) +
-  labs(title = "Water deficits in 2021",
-       x = "Month",
-       y = NULL) +
-  theme_bw() +
-  theme(legend.position = "bottom")
-
-
-
-
-#######################
-###Get max temp, min temp, and precipitation from worldclim for coordinates -12.83, -69.29
-# Load precip rasters
-raster.list.precip = list.files("C:/Users/rxf568/Dropbox/Peru - Individual Tree Project/Data analysis/climate/precip", pattern = "*.tif", full.names=T)  
-rasters.precip <- lapply(raster.list.precip, raster)
-
-coords <- data.frame(x = -69.29, y = -12.83)
-coordinates(coords) <- ~ x + y
-proj4string(coords) <- CRS("+proj=longlat +datum=WGS84")
-
-#write a for loop to extract values from each raster for the selected coordinates
-precip <- data.frame()
-for (i in 1:length(rasters.precip)){
-  precip <- rbind(precip, extract(rasters.precip[[i]], coords))
-}
-
-#change column name to mm
-colnames(precip) <- "precip"
-
-#tmax rasters
-raster.list.tmax = list.files("C:/Users/rxf568/Dropbox/Peru - Individual Tree Project/Data analysis/climate/tmax", pattern = "*.tif", full.names=T)  
-rasters.tmax <- lapply(raster.list.tmax, raster)
-
-tmax <- data.frame()
-for (i in 1:length(rasters.tmax)){
-  tmax <- rbind(tmax, extract(rasters.tmax[[i]], coords))
-}
-colnames(tmax) <- "tmax"
-
-#tin rasters
-raster.list.tmin = list.files("C:/Users/rxf568/Dropbox/Peru - Individual Tree Project/Data analysis/climate/tmin", pattern = "*.tif", full.names=T)  
-rasters.tmin <- lapply(raster.list.tmin, raster)
-
-tmin <- data.frame()
-for (i in 1:length(rasters.tmin)){
-  tmin <- rbind(tmin, extract(rasters.tmin[[i]], coords))
-}
-colnames(tmin) <- "tmin"
-
-climate <- cbind(precip, tmax, tmin)
-climate$month <- rep(1:12, length(climate))
-climate$year <- rep(1980:2021, each = 12)
-#make date column but only include month and year
-climate$date <- as.Date(paste(climate$year, climate$month, 1, sep = "-"))
-climate$tmean <- (climate$tmax + climate$tmin)/2
-
-#write worldclim data
-#write.csv(climate, file = "worldclim_data.csv")
-
-#summarize worldclim data by year
-climate_sum <- climate %>%
-  group_by(year) %>%
-  summarise(precip = sum(precip), tmax = mean(tmax), tmin = mean(tmin), tmean = mean(tmean))
-
-coeff <- 100
-
-#add a second y axis for temperature from 20 to 30
-ggplot(climate_sum, aes(x = year)) +
-  geom_line(aes(y = precip), color = "blue") +
-  geom_smooth(aes(y = precip), color = "blue3", method = "lm", se = FALSE) +
-  geom_line(aes(y = tmean * coeff), color = "red") +
-  geom_smooth(aes(y = tmean * coeff), color = "red2", method = "lm", se = FALSE) +
-  labs(x = "Date", y = "Precipitation (mm)", title = "WorldClim") +
-  theme_minimal() +
-  scale_y_continuous(sec.axis = sec_axis(~ ./coeff, name = "Temperature (C)"))
-
-
 
