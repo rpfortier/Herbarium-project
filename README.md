@@ -2,7 +2,7 @@
 Contact: Riley P. Fortier (fortier.riley@gmail.com)
 
 This repository contains code and associated data to analyze changes in the functional traits of individual trees across 40 years of climate change. 
-A manuscript is currently in preperation (Fortier et. al in review).
+A manuscript is currently in review.
 
 ## *Climate data and code*
 * Climate analysis.R
