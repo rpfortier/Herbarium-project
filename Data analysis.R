@@ -724,12 +724,13 @@ r.squaredGLMM(m)
 
 a <- ggplot(data = ind.trees, aes(x = year, y = thickness)) +
   geom_line(data = ind.trees, (aes(group = treeID)), color = "#82C0AB", alpha = 0.5) +
-  geom_point(size = 1) +
+  geom_point(size = 1, alpha = 0.5) +
+  annotate("text", x = 1995, y = 0.26, label = "***", size=10) +
   geom_smooth(method = "lm", se = T, color = "#2044BD") +
   theme_bw() +
   ylab("Thickness (mm)") +
   xlab("") 
-
+a
 #Use paired t-test to analyze if there is a difference between historical and modern leaves (both top and bottom)
 x <- ind.trees.supp[, c("treeID", "group2", "thickness")] %>%
   pivot_wider(names_from = group2,
@@ -767,7 +768,8 @@ r.squaredGLMM(m)
 
 b <- ggplot(data = ind.trees, aes(x = year, y = lma)) +
   geom_line(data = ind.trees, (aes(group = treeID)), color = "#82C0AB", alpha = 0.5) +
-  geom_point(size = 1) +
+  geom_point(size = 1, alpha = 0.5) +
+  annotate("text", x = 1995, y = 200, label = "*", size=10) +
   geom_smooth(method = "lm", se = T, color = "#2044BD") +
   theme_bw() +
   ylab(expression(LMA~(g~m^-3))) +
@@ -811,7 +813,7 @@ r.squaredGLMM(m)
 
 c <- ggplot(data = ind.trees, aes(x = year, y = elw)) +
   geom_line(data = ind.trees, (aes(group = treeID)), color = "#82C0AB", alpha = 0.5) +
-  geom_point(size = 1) +
+  geom_point(size = 1, alpha = 0.5) +
   theme_bw() +
   ylab("ELW (cm)") +
   xlab("") 
@@ -858,7 +860,8 @@ r.squaredGLMM(m)
 
 d <- ggplot(data = x, aes(x = year, y = (pi * (pore_length/2) * guard_cell_width))) +
   geom_line(data = x, (aes(group = treeID)), color = "#82C0AB", alpha = 0.5) +
-  geom_point(size = 1) +
+  geom_point(size = 1, alpha = 0.5) +
+  annotate("text", x = 2010, y = 45, label = "***", size=10) +
   geom_smooth(method = "lm", se = T, color = "#2044BD") +
   theme_bw() +
   ylab(expression(Stomatal~size~(um^2))) +
@@ -911,7 +914,7 @@ r.squaredGLMM(m)
 
 e <- ggplot(data = x, aes(x = year, y = stomatal_density)) +
   geom_line(data = ind.trees, (aes(group = treeID)), color = "#82C0AB", alpha = 0.5) +
-  geom_point(size = 1) +
+  geom_point(size = 1, alpha = 0.5) +
   theme_bw() +
   ylab(expression(Stomatal~density~(mm^-2))) +
   xlab("") 
@@ -961,7 +964,8 @@ r.squaredGLMM(m)
 
 f <- ggplot(data = x, aes(x = year, y = gmax)) +
   geom_line(data = ind.trees, (aes(group = treeID)), color = "#82C0AB", alpha = 0.5) +
-  geom_point(size = 1) +
+  geom_point(size = 1, alpha = 0.5) +
+  annotate("text", x = 2010, y = 5.8, label = "**", size=10) +
   geom_smooth(method = "lm", se = T, color = "#2044BD") +
   theme_bw() +
   ylab(expression(g[smax]~(mol~m^-2~s^-1))) +
@@ -1100,16 +1104,45 @@ summary(m)
 r.squaredGLMM(m)
 
 #plot leaf temperature by year
+library(ggbreak)
+
 ggplot(data = x, aes(x = year, y = T_leaf)) +
   theme_bw() +
   geom_line(aes(group = treeID), color = "#82C0AB", alpha = 1, linewidth = 0.2) +
-  geom_point(size = 1.5) +
+  geom_point(size = 1.5, alpha = 0.5) +
+  # Air temperature line: shifted down by 10°C (intercept = -35.74 - 10 = -45.74)
+  geom_abline(slope = 0.036, intercept = -45.74, color = "#C42021", 
+              linewidth = 1, linetype = "dashed") +
+  geom_smooth(method = "lm", color = "#2044BD", se = TRUE, linewidth = 1.3) +
+  scale_y_continuous(breaks = seq(24, 39, by = 1)) +
+  # Add axis break to remove white space between air and leaf temps
+  scale_y_break(c(27.5, 34), scales = 5/2, expand = c(0, 0)) +
+  # Expand y-axis limits to show full range
+  expand_limits(y = c(25.5, 39)) +
+  ylab("Temperature (°C)") +
+  xlab("Year") +
+  annotate("text", x = 1995, y = 38.5, label = bquote("Leaf temperature slope: 0.046 °C "~yr^-1), size=4) +
+  annotate("text", x = 1995, y = 27, label = bquote("Air temperature slope: 0.036 °C "~yr^-1), size=4) +
+  # Make axis text larger
+  theme(axis.text.x = element_text(size = 12),
+        axis.text.y = element_text(size = 12),
+        axis.text.y.right = element_blank(),
+        axis.ticks.y.right = element_blank(),
+        axis.title.x = element_text(size = 14),
+        axis.title.y = element_text(size = 14))
+
+ggplot(data = x, aes(x = year, y = T_leaf)) +
+  theme_bw() +
+  geom_line(aes(group = treeID), color = "#82C0AB", alpha = 1, linewidth = 0.2) +
+  geom_point(size = 1.5, alpha = 0.5) +
   geom_abline(slope = 0.036, intercept = -35.74, color = "#C42021", linewidth = 1, linetype = "dashed") +
   geom_smooth(method = "lm", color = "#2044BD", se = T, linewidth = 1.3) +
   ylab("Leaf Temperature (°C)") +
   #add a second y axis for air temperature
   scale_y_continuous(sec.axis = sec_axis(~ . -10, name = "Air Temperature (°C)")) +
   xlab("Year") +
+  #annotate("text", x = 1995, y = 38, label = bquote("Leaf temperature slope: 0.046 °C "~yr^-1), size=4) +
+  #annotate("text", x = 2010, y = 34.5, label = bquote("Air temperature slope: 0.036 °C "~yr^-1), size=4) +
   #make axis text larger
   theme(axis.text.x = element_text(size = 12),
         axis.text.y = element_text(size = 12),
@@ -1352,8 +1385,15 @@ x <- x %>%
 
 x$group <- factor(x$group, levels = c("Historical", "Contemporary"))
 
+min.mean.sd.max <- function(x) {
+  r <- c(min(x), mean(x) - sd(x), mean(x), mean(x) + sd(x), max(x))
+  names(r) <- c("ymin", "lower", "middle", "upper", "ymax")
+  r
+}
+
 ggplot(data = x, aes(x = group, y = T_leaf_hot)) + #change T_leaf column to visualize the cool, mean, and hot climates
   geom_boxplot(aes(group = group), fill = "gray95", outliers = FALSE) +
+  stat_summary(fun.y = mean, geom = "errorbar", aes(ymax = ..y.., ymin = ..y..), linewidth = 1, width = 0.75, linetype = "dashed") +
   #geom_line(aes(group = treeID), color = "gray50", alpha = 0.4) +
   geom_jitter(width = 0.05, height = 0, size = 1.5, color = "black", alpha = 0.4) +
   theme_bw() +
@@ -1492,3 +1532,4 @@ ggplot(coefficients_df, aes(x = Parameter, y = Estimate, fill = Category)) +
 
 
  ####
+
