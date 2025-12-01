@@ -4,6 +4,8 @@ Contact: Riley P. Fortier (fortier.riley@gmail.com)
 This repository contains code and associated data to analyze changes in the functional traits of individual trees across 40 years of climate change. 
 A manuscript is currently in review.
 
+All R scripts run successfully using R software version 4.5.0 on Windows 11 and macOS Tahoe and should work on all standard operating systems. All scripts take under 10 minutes to run completely. 
+
 ## *Climate data and code*
 * Climate analysis.R
   + R code for climate data analysis
